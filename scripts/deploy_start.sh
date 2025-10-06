@@ -34,7 +34,12 @@ if [ "$PREV_COMMIT" == "$LATEST_COMMIT" ]; then
 fi
 
 echo "Generating file diff between commits..."
-DIFF_FILES=$(git diff --name-only "$PREV_COMMIT" "$LATEST_COMMIT")
+if ! DIFF_FILES=$(git diff --name-only "$PREV_COMMIT" "$LATEST_COMMIT" 2>/dev/null); then
+    echo "❌ Error: one of the commit hashes is invalid or not found in the repository."
+    echo "   Please check your deployment record file: $DEPLOY_FILE"
+    echo "   Current value: $PREV_COMMIT"
+    exit 1
+fi
 
 if [ -z "$DIFF_FILES" ]; then
     echo "No file changes detected!"
