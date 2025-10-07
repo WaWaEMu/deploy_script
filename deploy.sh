@@ -20,6 +20,10 @@ case "$DEPLOY_MODE" in
         export MAIN_DIR
         bash "$MAIN_DIR/scripts/deploy_prepare.sh" "$MAIN_DIR"
         ;;
+    apply)
+        export MAIN_DIR
+        bash "$MAIN_DIR/scripts/deploy_apply.sh" "$MAIN_DIR"
+        ;;
     *)
         echo "Invalid mode: $DEPLOY_MODE"
         exit 1
