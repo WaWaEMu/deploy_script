@@ -6,7 +6,7 @@ source "$SCRIPT_DIR/../config/deploy.conf"
 
 MAIN_DIR="$1"
 
-echo "=== Start deployment ==="
+echo "=== Prepare deployment ==="
 
 # Ensure local repo exists and is valid
 if [ ! -d "$LOCAL_REPO_PATH/.git" ]; then
@@ -70,3 +70,4 @@ for FILE in $DIFF_FILES; do
 done
 
 echo "=== Deployment preparation completed ==="
+echo "Next step: run './deploy.sh apply' to deploy changes to production."
