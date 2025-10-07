@@ -69,5 +69,10 @@ for FILE in $DIFF_FILES; do
     echo "✅ Prepared diff for: $FILE"
 done
 
+# ✅ Save diff list and version metadata for the apply phase
+echo "$DIFF_FILES" > "$MAIN_DIR/version_diff/diff_list.txt"
+echo "$PREV_COMMIT" > "$MAIN_DIR/version_diff/prev_commit.txt"
+echo "$LATEST_COMMIT" > "$MAIN_DIR/version_diff/latest_commit.txt"
+
 echo "=== Deployment preparation completed ==="
 echo "Next step: run './deploy.sh apply' to deploy changes to production."
