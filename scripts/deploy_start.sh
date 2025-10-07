@@ -4,6 +4,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../config/deploy.conf"
 
+MAIN_DIR="$1"
+
 echo "=== Start deployment ==="
 
 # Ensure local repo exists and is valid
@@ -49,3 +51,22 @@ fi
 echo "✅ Deployment preparation completed."
 echo "Changed files since last deployment:"
 echo "$DIFF_FILES"
+echo "-----------------------------"
+
+# Create old and new version files under version_diff directory
+for FILE in $DIFF_FILES; do
+    OLD_FILE="$MAIN_DIR/version_diff/$FILE.old"
+    NEW_FILE="$MAIN_DIR/version_diff/$FILE.new"
+
+    # Make sure for directory exists
+    mkdir -p "$(dirname "$OLD_FILE")"
+
+    echo "⏳ Preparing diff for: $FILE"
+
+    git show "$PREV_COMMIT:$FILE" > "$OLD_FILE"
+    git show "$LATEST_COMMIT:$FILE" > "$NEW_FILE"
+
+    echo "✅ Prepared diff for: $FILE"
+done
+
+echo "=== Deployment preparation completed ==="

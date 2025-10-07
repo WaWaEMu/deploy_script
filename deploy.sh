@@ -17,7 +17,8 @@ case "$DEPLOY_MODE" in
         bash "$MAIN_DIR/scripts/deploy_init.sh"
         ;;
     start)
-        bash "$MAIN_DIR/scripts/deploy_start.sh"
+        export MAIN_DIR
+        bash "$MAIN_DIR/scripts/deploy_start.sh" "$MAIN_DIR"
         ;;
     *)
         echo "Invalid mode: $DEPLOY_MODE"
