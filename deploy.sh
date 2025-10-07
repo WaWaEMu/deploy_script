@@ -8,7 +8,7 @@ DEPLOY_MODE=$1
 
 if [ -z "$DEPLOY_MODE" ]; then
     echo "Usage: ./deploy.sh <deploy-mode>"
-    echo "Available modes: init | start"
+    echo "Available modes: init | prepare"
     exit 1
 fi
 
@@ -16,9 +16,9 @@ case "$DEPLOY_MODE" in
     init)
         bash "$MAIN_DIR/scripts/deploy_init.sh"
         ;;
-    start)
+    prepare)
         export MAIN_DIR
-        bash "$MAIN_DIR/scripts/deploy_start.sh" "$MAIN_DIR"
+        bash "$MAIN_DIR/scripts/deploy_prepare.sh" "$MAIN_DIR"
         ;;
     *)
         echo "Invalid mode: $DEPLOY_MODE"
