@@ -12,13 +12,21 @@ echo "=== Initialize deployment tracking ==="
 
 if [ ! -f "$DEPLOY_FILE" ] || [ ! -s "$DEPLOY_FILE" ] ; then
     echo "⚠️  Deployment record file not found or empty."
-    read -p "Please enter the current production commit hash to initialize tracking: " COMMIT_HASH
+    read -p "Please enter the current production commit hash to initialize tracking: " INPUT_HASH
 
-    if [ -z "$COMMIT_HASH" ]; then
+    if [ -z "$INPUT_HASH" ]; then
         echo "Error: commit hash cannot be empty."
         exit 1
     fi
 
+    # Try to expand short commit hash to full hash
+    FULL_HASH=$(git rev-parse "$INPUT_HASH" 2>/dev/null)
+    if [ -z "$FULL_HASH" ]; then
+        echo "❌ Error: commit $INPUT_HASH not found in repository."
+        exit 1
+    fi
+
+    COMMIT_HASH=$FULL_HASH
     echo "$COMMIT_HASH" > "$DEPLOY_FILE"
     echo "Deployment tracking initialized with commit: $COMMIT_HASH"
 else
