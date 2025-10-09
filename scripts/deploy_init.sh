@@ -10,7 +10,7 @@ prepare_repo "$REPO_URL" "$DEPLOY_BRANCH"
 
 echo "=== Initialize deployment tracking ==="
 
-if [ ! -f "$DEPLOY_FILE" ] || [ ! -s "$DEPLOY_FILE" ] ; then
+if [ ! -f "$DEPLOY_VERSION" ] || [ ! -s "$DEPLOY_VERSION" ] ; then
     echo "⚠️  Deployment record file not found or empty."
     read -p "Please enter the current production commit hash to initialize tracking: " INPUT_HASH
 
@@ -27,10 +27,10 @@ if [ ! -f "$DEPLOY_FILE" ] || [ ! -s "$DEPLOY_FILE" ] ; then
     fi
 
     COMMIT_HASH=$FULL_HASH
-    echo "$COMMIT_HASH" > "$DEPLOY_FILE"
+    echo "$COMMIT_HASH" > "$DEPLOY_VERSION"
     echo "Deployment tracking initialized with commit: $COMMIT_HASH"
 else
-    COMMIT_HASH=$(cat "$DEPLOY_FILE")
+    COMMIT_HASH=$(cat "$DEPLOY_VERSION")
     echo "Found existing deployment record: $COMMIT_HASH"
 fi
 
