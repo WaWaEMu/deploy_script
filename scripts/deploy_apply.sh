@@ -7,6 +7,13 @@ source "$SCRIPT_DIR/../config/deploy.conf"
 
 MAIN_DIR="$1"
 
+if [ -n "$VPN_CHECK_IP" ]; then
+    if ! ping -c 1 -W 2 "$VPN_CHECK_IP" &>/dev/null; then
+        echo "❌ Cannot reach $VPN_CHECK_IP. Please connect to VPN first."
+        exit 1
+    fi
+fi
+
 # === Check if SSH public key is set up ===
 if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_USER@$SSH_HOST" "exit" 2>/dev/null; then
     echo "🔔 SSH public key is not configured. Please execute manually:"
