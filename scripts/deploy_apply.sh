@@ -7,9 +7,11 @@ source "$SCRIPT_DIR/../config/deploy.conf"
 
 MAIN_DIR="$1"
 
-if [ ! -d "$PROD_ROOT" ]; then
-    echo "Error: Production directory $PROD_ROOT does not exists!"
-    exit 1
+# === Check if SSH public key is set up ===
+if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_USER@$SSH_HOST" "exit" 2>/dev/null; then
+    echo "🔔 SSH public key is not configured. Please execute manually:"
+    echo "ssh-copy-id -i ~/.ssh/id_ed25519.pub $SSH_USER@$SSH_HOST"
+    read -p "Press Enter to continue deployment..."
 fi
 
 # === Load version diff info ===
@@ -25,47 +27,42 @@ LATEST_COMMIT=$(cat "$MAIN_DIR/version_diff/latest_commit.txt")
 echo "Applying changes from $PREV_COMMIT → $LATEST_COMMIT ..."
 echo "------------------------------------------"
 
-# === Verify production files and permissions ===
+# === Verify local diff files exist ===
 for FILE in $DIFF_FILES; do
-    PROD_FILE="$PROD_ROOT/$FILE"
-
-    # 1️⃣ Check content matches old version
-    if ! diff "$PROD_FILE" "$MAIN_DIR/version_diff/$FILE.old" >/dev/null 2>&1; then
-        echo "❌ $FILE does not match old version — aborting deployment"
-        exit 1
-    fi
-
-    # 2️⃣ Check write permission
-    if [ ! -w "$PROD_FILE" ]; then
-        echo "❌ $FILE is not writable — aborting deployment"
+    if [ ! -f "$MAIN_DIR/version_diff/$FILE.new" ]; then
+        echo "❌ $FILE.new not found in version_diff — aborting deployment"
         exit 1
     fi
 done
 
-# 3️⃣ Check deploy version file write permission (directory must be writable)
-DEPLOY_FILE_PATH="$PROD_ROOT/$DEPLOY_FILE"
-DEPLOY_DIR="$(dirname "$DEPLOY_FILE_PATH")"
-
-if [ ! -d "$DEPLOY_DIR" ] || [ ! -w "$DEPLOY_DIR" ]; then
-    echo "❌ Directory $DEPLOY_DIR is not writable — aborting deployment"
-    exit 1
-fi
-
-echo "✅ Verification passed. All production files match old versions."
-
-# === Apply new files ===
+# === Verify remote files match old versions ===
 for FILE in $DIFF_FILES; do
-    echo "🚀 Deploying: $FILE"
-    mkdir -p "$(dirname "$PROD_ROOT/$FILE")"
-    cp "$MAIN_DIR/version_diff/$FILE.new" "$PROD_ROOT/$FILE"
+    REMOTE_FILE=$PROD_ROOT/$FILE
+    LOCAL_OLD="$MAIN_DIR/version_diff/$FILE.old"
+
+    if ! ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cmp -s '$REMOTE_FILE' - " < "$LOCAL_OLD"; then
+        echo "❌ $FILE on remote does not match old version — aborting deployment"
+        exit 1
+    fi
 done
 
-# === Update deploy version record ===
-# -------------------------------
-# Local repository (development environment)
+# === Deploy files to production via SSH/SCP ===
+for FILE in $DIFF_FILES; do
+    REMOTE_FILE=$PROD_ROOT/$FILE
+    REMOTE_DIR="$(dirname "$REMOTE_FILE")"
+    echo "🚀 Deploying: $FILE to $SSH_HOST:$REMOTE_FILE"
+
+    # Create remote directory
+    ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p \"$REMOTE_DIR\""
+
+    # Copy file to remote server
+    scp -P "$SSH_PORT" "$MAIN_DIR/version_diff/$FILE.new" "$SSH_USER@$SSH_HOST:$REMOTE_FILE"
+done
+
+# === Update deploy version on remote server ===
+ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "echo '$LATEST_COMMIT' > '$PROD_ROOT/$DEPLOY_FILE'"
+
+# === Update local deploy version record ===
 echo "$LATEST_COMMIT" > "$LOCAL_REPO_PATH/$DEPLOY_FILE"
-
-# Production environment
-echo "$LATEST_COMMIT" > "$PROD_ROOT/$DEPLOY_FILE"
 
 echo "✅ Deployment completed successfully!"
