@@ -40,6 +40,12 @@ for FILE in $DIFF_FILES; do
     REMOTE_FILE=$PROD_ROOT/$FILE
     LOCAL_OLD="$MAIN_DIR/version_diff/$FILE.old"
 
+    if [ ! -s "$LOCAL_OLD" ]; then
+        # File did not exist before, skip comparison
+        echo "ℹ️ $FILE is new, no need to compare old version."
+        continue
+    fi
+
     if ! ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cmp -s '$REMOTE_FILE' - " < "$LOCAL_OLD"; then
         echo "❌ $FILE on remote does not match old version — aborting deployment"
         exit 1
@@ -48,7 +54,7 @@ done
 
 # === Deploy files to production via SSH/SCP ===
 for FILE in $DIFF_FILES; do
-    REMOTE_FILE=$PROD_ROOT/$FILE
+    REMOTE_FILE="$PROD_ROOT/$FILE"
     REMOTE_DIR="$(dirname "$REMOTE_FILE")"
     echo "🚀 Deploying: $FILE to $SSH_HOST:$REMOTE_FILE"
 
