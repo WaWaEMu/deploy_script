@@ -41,3 +41,4 @@ if ! git cat-file -e "${COMMIT_HASH}^{commit}" 2>/dev/null; then
 fi
 
 echo "✅ Deployment tracking successfully initialized."
+echo "Next step: run './deploy.sh prepare' to generate deployment diffs."
