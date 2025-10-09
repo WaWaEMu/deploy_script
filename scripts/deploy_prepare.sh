@@ -63,7 +63,13 @@ for FILE in $DIFF_FILES; do
 
     echo "⏳ Preparing diff for: $FILE"
 
-    git show "$PREV_COMMIT:$FILE" > "$OLD_FILE"
+    # Create OLD_FILE; empty if missing in previous commit
+    if git cat-file -e "$PREV_COMMIT:$FILE" 2>/dev/null; then
+        git show "$PREV_COMMIT:$FILE" > "$OLD_FILE"
+    else
+        touch "$OLD_FILE"
+    fi
+
     git show "$LATEST_COMMIT:$FILE" > "$NEW_FILE"
 
     echo "✅ Prepared diff for: $FILE"
