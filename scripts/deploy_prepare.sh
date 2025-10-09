@@ -9,25 +9,25 @@ MAIN_DIR="$1"
 echo "=== Prepare deployment ==="
 
 # Ensure local repo exists and is valid
-if [ ! -d "$LOCAL_REPO_PATH/.git" ]; then
-    echo "Error: LOCAL_REPO_PATH '$LOCAL_REPO_PATH' does not exist. Please run './deploy.sh prepare' or reinitialize."
+if [ ! -d "$LOCAL_ROOT/.git" ]; then
+    echo "Error: LOCAL_ROOT '$LOCAL_ROOT' does not exist. Please run './deploy.sh prepare' or reinitialize."
     exit 1
 fi
 
-cd "$LOCAL_REPO_PATH"
+cd "$LOCAL_ROOT"
 
 if [ ! -d ".git" ]; then
-    echo "Error: $LOCAL_REPO_PATH is not a valid Git repository."
+    echo "Error: $LOCAL_ROOT is not a valid Git repository."
     exit 1
 fi
 
 # Ensure deployment tracking file exists and not empty
-if [ ! -f "$DEPLOY_FILE" ] || [ ! -s "$DEPLOY_FILE" ] ; then
-    echo "Error: $DEPLOY_FILE not found. Please run './deploy.sh init' first."
+if [ ! -f "$DEPLOY_VERSION" ] || [ ! -s "$DEPLOY_VERSION" ] ; then
+    echo "Error: $DEPLOY_VERSION not found. Please run './deploy.sh init' first."
     exit 1
 fi
 
-PREV_COMMIT=$(cat "$DEPLOY_FILE")
+PREV_COMMIT=$(cat "$DEPLOY_VERSION")
 LATEST_COMMIT=$(git rev-parse origin/$DEPLOY_BRANCH)
 
 if [ "$PREV_COMMIT" == "$LATEST_COMMIT" ]; then
@@ -38,7 +38,7 @@ fi
 echo "Generating file diff between commits..."
 if ! DIFF_FILES=$(git diff --name-only "$PREV_COMMIT" "$LATEST_COMMIT" 2>/dev/null); then
     echo "❌ Error: one of the commit hashes is invalid or not found in the repository."
-    echo "   Please check your deployment record file: $DEPLOY_FILE"
+    echo "   Please check your deployment record file: $DEPLOY_VERSION"
     echo "   Current value: $PREV_COMMIT"
     exit 1
 fi

@@ -22,15 +22,15 @@ prepare_repo() {
     local REPO_URL="$1"
     local BRANCH="$2"
 
-    if [ ! -d "$LOCAL_REPO_PATH/.git" ]; then
+    if [ ! -d "$LOCAL_ROOT/.git" ]; then
         echo "Repository not found. Cloning..."
-        git clone "$REPO_URL" "$LOCAL_REPO_PATH"
+        git clone "$REPO_URL" "$LOCAL_ROOT"
     else
-        cd "$LOCAL_REPO_PATH"
+        cd "$LOCAL_ROOT"
         EXISTING_URL=$(git remote get-url origin)
 
         if [ "$EXISTING_URL" != "$REPO_URL" ]; then
-            echo "Error: $LOCAL_REPO_PATH exists but is not the target repository."
+            echo "Error: $LOCAL_ROOT exists but is not the target repository."
             echo "Expected: $REPO_URL"
             echo "Found:    $EXISTING_URL"
             exit 1
@@ -40,7 +40,7 @@ prepare_repo() {
     fi
 
     # Upadte repository
-    cd "$LOCAL_REPO_PATH"
+    cd "$LOCAL_ROOT"
     echo "Fetching latest changes..."
     git fetch --all
 

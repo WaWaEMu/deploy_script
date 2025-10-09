@@ -60,9 +60,9 @@ for FILE in $DIFF_FILES; do
 done
 
 # === Update deploy version on remote server ===
-ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "echo '$LATEST_COMMIT' > '$PROD_ROOT/$DEPLOY_FILE'"
+ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "echo '$LATEST_COMMIT' > '$PROD_ROOT/$DEPLOY_VERSION'"
 
 # === Update local deploy version record ===
-echo "$LATEST_COMMIT" > "$LOCAL_REPO_PATH/$DEPLOY_FILE"
+echo "$LATEST_COMMIT" > "$LOCAL_ROOT/$DEPLOY_VERSION"
 
 echo "✅ Deployment completed successfully!"
