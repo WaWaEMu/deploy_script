@@ -63,13 +63,18 @@ done
 for FILE in $DIFF_FILES; do
     REMOTE_FILE="$PROD_ROOT/$FILE"
     REMOTE_DIR="$(dirname "$REMOTE_FILE")"
-    echo "🚀 Deploying: $FILE to $SSH_HOST:$REMOTE_FILE"
+    LOCAL_NEW="$MAIN_DIR/version_diff/$FILE.new"
 
-    # Create remote directory
-    ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p \"$REMOTE_DIR\""
+    echo "🚀 Processing: $FILE"
 
-    # Copy file to remote server
-    scp -P "$SSH_PORT" "$MAIN_DIR/version_diff/$FILE.new" "$SSH_USER@$SSH_HOST:$REMOTE_FILE"
+    if [ -s "$LOCAL_NEW" ]; then
+        echo "📤 Uploading to $SSH_HOST:$REMOTE_FILE"
+        ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p \"$REMOTE_DIR\""
+        scp -P "$SSH_PORT" "$LOCAL_NEW" "$SSH_USER@$SSH_HOST:$REMOTE_FILE"
+    else
+        echo "🗑️ Removing $REMOTE_FILE from remote (file deleted)"
+        ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "rm -f \"$REMOTE_FILE\""
+    fi
 done
 
 # === Update deploy version on remote server ===
