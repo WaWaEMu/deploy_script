@@ -59,6 +59,26 @@ for FILE in $DIFF_FILES; do
     fi
 done
 
+# === Backup files from production before deployment ===
+BACKUP_DIR="$MAIN_DIR/backups/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+echo "💾 Backing up files to $BACKUP_DIR ..."
+
+for FILE in $DIFF_FILES; do
+    REMOTE_FILE="$PROD_ROOT/$FILE"
+    LOCAL_BACKUP="$BACKUP_DIR/$FILE"
+
+    # Only backup if remote file exists
+    if ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "test -f '$REMOTE_FILE'"; then
+        mkdir -p "$(dirname "$LOCAL_BACKUP")"
+        scp -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$REMOTE_FILE" "$LOCAL_BACKUP"
+        echo "✅ Backed up $REMOTE_FILE"
+    else
+        echo "ℹ️ $REMOTE_FILE does not exist on remote, skipping backup"
+    fi
+done
+
 # === Deploy files to production via SSH/SCP ===
 for FILE in $DIFF_FILES; do
     REMOTE_FILE="$PROD_ROOT/$FILE"

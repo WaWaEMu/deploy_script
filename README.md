@@ -114,4 +114,6 @@ Applies prepared changes to the production environment over SSH.
 
 3. Checks that remote files match old versions before applying.
 
-4. Uploads changed files via SCP and updates deployment records.
+4. Backs up existing remote files to local backup directory.
+
+5. Uploads changed files via SCP and updates deployment records.
