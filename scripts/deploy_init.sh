@@ -10,6 +10,13 @@ prepare_repo "$REPO_URL" "$DEPLOY_BRANCH"
 
 echo "=== Initialize deployment tracking ==="
 
+# Clean up old version_diff directory if exists
+VERSION_DIFF_DIR="$MAIN_DIR/version_diff"
+if [ -d "$VERSION_DIFF_DIR" ]; then
+    echo "🧹 Cleaning up previous version_diff directory..."
+    rm -rf "$VERSION_DIFF_DIR"
+fi
+
 if [ ! -f "$DEPLOY_VERSION" ] || [ ! -s "$DEPLOY_VERSION" ] ; then
     echo "⚠️  Deployment record file not found or empty."
     read -p "Please enter the current production commit hash to initialize tracking: " INPUT_HASH

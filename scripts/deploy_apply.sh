@@ -104,3 +104,7 @@ ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "echo '$LATEST_COMMIT' > '$PROD_ROOT/$D
 echo "$LATEST_COMMIT" > "$LOCAL_ROOT/$DEPLOY_VERSION"
 
 echo "✅ Deployment completed successfully!"
+
+# === Clean up version_diff after successful deployment ===
+rm -rf "$MAIN_DIR/version_diff"
+echo "🧹 Cleaned up version_diff directory"
