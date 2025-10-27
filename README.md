@@ -4,6 +4,8 @@
 `init` → `prepare` → *(🔌 manually connect VPN)* → `apply`  
 *(Setup tracking → Generate diffs → Connect VPN → Deploy changes)*
 
+**Optional:** `rollback` – Revert production to a previous backup if needed.
+
 ## Overview
 
 `deploy_script` is a lightweight deployment tool designed for scenarios where the production environment is isolated or restricted, making fully automated deployment impossible. Its main purpose is to **simplify manual deployment while ensuring version consistency** between your Git repository and the production server.
@@ -117,3 +119,30 @@ Applies prepared changes to the production environment over SSH.
 4. Backs up existing remote files to local backup directory.
 
 5. Uploads changed files via SCP and updates deployment records.
+
+## Rollback
+
+### `rollback` – Revert Deployment to Previous Backup
+Restores the production environment to a previous backup, undoing changes applied by `apply`.
+
+```bash
+# List available backups
+./deploy.sh rollback --list
+```
+
+```bash
+# Roll back to a specific backup
+./deploy.sh rollback <backup_folder>
+```
+
+### What happens:
+
+1. Lists available backups (--list) or selects a target backup.
+
+2. Prompts for confirmation before making changes.
+
+3. Restores old files from backup to the production server via SSH.
+
+4. Deletes newly added files from the deployment session.
+
+5. Restores the deployment version record.
