@@ -24,6 +24,10 @@ case "$DEPLOY_MODE" in
         export MAIN_DIR
         bash "$MAIN_DIR/scripts/deploy_apply.sh" "$MAIN_DIR"
         ;;
+    rollback)
+        export MAIN_DIR
+        bash "$MAIN_DIR/scripts/deploy/rollback.sh" "$MAIN_DIR" "$2"
+        ;;
     *)
         echo "Invalid mode: $DEPLOY_MODE"
         exit 1
