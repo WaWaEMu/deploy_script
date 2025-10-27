@@ -61,23 +61,40 @@ done
 
 # === Backup files from production before deployment ===
 BACKUP_DIR="$MAIN_DIR/backups/$(date +%Y%m%d_%H%M%S)"
+REMOTE_DEPLOY_VERSION="$PROD_ROOT/$DEPLOY_VERSION"
+
+# Create backup directories
 mkdir -p "$BACKUP_DIR"
+OLD_DIR="$BACKUP_DIR/old"
+NEW_DIR="$BACKUP_DIR/new"
+mkdir -p "$OLD_DIR" "$NEW_DIR"
 
 echo "💾 Backing up files to $BACKUP_DIR ..."
 
 for FILE in $DIFF_FILES; do
-    REMOTE_FILE="$PROD_ROOT/$FILE"
-    LOCAL_BACKUP="$BACKUP_DIR/$FILE"
+    LOCAL_OLD="$MAIN_DIR/version_diff/$FILE.old"
+    LOCAL_NEW="$MAIN_DIR/version_diff/$FILE.new"
 
-    # Only backup if remote file exists
-    if ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "test -f '$REMOTE_FILE'"; then
-        mkdir -p "$(dirname "$LOCAL_BACKUP")"
-        scp -P "$SSH_PORT" "$SSH_USER@$SSH_HOST:$REMOTE_FILE" "$LOCAL_BACKUP"
-        echo "✅ Backed up $REMOTE_FILE"
+    # --- Determine file state ---
+    if [ ! -s "$LOCAL_OLD" ] && [ -s "$LOCAL_NEW" ]; then
+        # 🆕 Case: File is newly added
+        mkdir -p "$(dirname "$NEW_DIR/$FILE")"
+        cp "$LOCAL_NEW" "$NEW_DIR/$FILE"
+        echo "🆕 New file detected: $FILE"
+    elif [ -s "$LOCAL_OLD" ]; then
+         # 🗃️ Case: Modified or deleted file — always backup the old version
+        mkdir -p "$(dirname "$OLD_DIR/$FILE")"
+        cp "$LOCAL_OLD" "$OLD_DIR/$FILE"
+        echo "🗃️ Old file backed up: $FILE"
     else
-        echo "ℹ️ $REMOTE_FILE does not exist on remote, skipping backup"
+        # ⚠️ Case: Unexpected or invalid file state
+        echo "⚠️ Unknown state for $FILE"
     fi
 done
+
+# Record deployment version for traceability
+cp "$LOCAL_ROOT/$DEPLOY_VERSION" "$BACKUP_DIR/$DEPLOY_VERSION"
+echo "✅ Recorded $DEPLOY_VERSION"
 
 # === Deploy files to production via SSH/SCP ===
 for FILE in $DIFF_FILES; do
