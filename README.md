@@ -97,11 +97,11 @@ Compares the last deployed commit with the latest commit on the target branch, t
 
 3. Saves old/new file versions and metadata under `version_diff`/ for the next step (`apply`).
 
-## ⚠️ Manual Step: Connect VPN
+### ⚠️ Manual Step: Connect VPN
 
 Before running `apply`, make sure you are connected to the production network (VPN).
 
-## apply – Apply Deployment
+### `apply` – Apply Deployment
 Applies prepared changes to the production environment over SSH.
 
 ```bash
