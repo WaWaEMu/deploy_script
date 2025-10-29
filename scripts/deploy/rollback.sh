@@ -63,15 +63,15 @@ ROLLBACK_BACKUPS=($(for b in "${SORTED_BACKUPS[@]:$TARGET_INDEX}"; do echo "$b";
 
 echo ""
 echo "🔍 Checking deployment environment..."
-echo "------------------------------------"
+echo "------------------------------------------"
 
-# === Check if config values exist ===
+# Check if config values exist
 if [ -z "$SSH_USER" ] || [ -z "$SSH_HOST" ]; then
     echo "❌ SSH_USER or SSH_HOST not defined in config/deploy.conf"
     exit 1
 fi
 
-# === Check VPN connection ===
+# Check VPN connection
 if [ -n "$VPN_CHECK_IP" ]; then
     if ! ping -c 1 -W 2 "$VPN_CHECK_IP" &>/dev/null; then
         echo "❌ Cannot reach $VPN_CHECK_IP. Please connect to VPN first."
@@ -79,14 +79,14 @@ if [ -n "$VPN_CHECK_IP" ]; then
     fi
 fi
 
-# === Check if SSH is reachable ===
+# Check if SSH is reachable
 if ! ping -c 1 -W 2 "$SSH_HOST" &>/dev/null; then
     echo "❌ Cannot reach SSH host: $SSH_HOST"
     echo "Please check your VPN connection or SSH settings."
     exit 1
 fi
 
-# === Check if SSH public key is set up ===
+# Check if SSH public key is set up
 if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_USER@$SSH_HOST" "exit" 2>/dev/null; then
     echo "🔔 SSH public key is not configured. Please execute manually:"
     echo "ssh-copy-id -i ~/.ssh/id_ed25519.pub $SSH_USER@$SSH_HOST"
@@ -97,7 +97,7 @@ echo "✅ Environment check completed!"
 
 echo ""
 echo "🔁 Rolling back to backup"
-echo "------------------------------------"
+echo "------------------------------------------"
 
 # Confirm rollback
 echo "⚠️  You are about to restore the following backups (newest → oldest):"
@@ -126,6 +126,6 @@ for BACKUP in "${ROLLBACK_BACKUPS[@]}"; do
     echo "✅ Rollback of $BACKUP completed."
 done
 
-echo "------------------------------------"
+echo "------------------------------------------"
 echo "🎉 All selected backups have been rolled back successfully!"
 echo ""
