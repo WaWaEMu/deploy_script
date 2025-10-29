@@ -54,3 +54,70 @@ prepare_repo() {
         echo "Created local branch '$BRANCH' from origin/$BRANCH."
     fi
 }
+
+# Function to rollback a single backup
+rollback_single_backup() {
+    local TARGET_BACKUP="$1"
+    local BACKUP_PATH="$BACKUP_ROOT/$TARGET_BACKUP"
+
+    # Check that backup is not empty
+    if [ -z "$(ls -A "$BACKUP_PATH")" ]; then
+        echo "⚠️  Backup directory is empty: $BACKUP_PATH"
+        exit 1
+    fi
+
+    # Restore old files from backup
+    OLD_DIR="$BACKUP_PATH/old"
+    NEW_DIR="$BACKUP_PATH/new"
+
+    # Rollback 'old' files (restore previous versions)
+    if [ -d "$OLD_DIR" ]; then
+        echo "Restoring old files..."
+        mapfile -t old_files < <(find "$OLD_DIR" -type f)
+        for FILE in "${old_files[@]}"; do
+            REL_PATH="${FILE#$OLD_DIR/}"
+            PROD_FILE="$PROD_ROOT/$REL_PATH"
+            PROD_DIR="$(dirname "$PROD_FILE")"
+
+            ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p \"$PROD_DIR\""
+            scp -P "$SSH_PORT" "$FILE" "$SSH_USER@$SSH_HOST:$PROD_FILE" &>/dev/null
+        done
+        echo "   Old files restored."
+    else
+        echo "   No old files to restore."
+    fi
+
+    echo ""
+
+    # Rollback 'new' files (delete files that were newly added during apply)
+    if [ -d "$NEW_DIR" ]; then
+        echo "Removing newly added files..."
+        # Read all files into an array
+        mapfile -d '' NEW_FILES < <(find "$NEW_DIR" -type f -print0)
+
+        for FILE in "${NEW_FILES[@]}"; do
+            REL_PATH="${FILE#$NEW_DIR/}"
+            PROD_FILE="$PROD_ROOT/$REL_PATH"
+
+            ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "rm -f \"$PROD_FILE\""
+        done
+
+        echo "   New files removed."
+    else
+        echo "   No new files to delete."
+    fi
+
+    # Set path to backup version record
+    BACKUP_DEPLOY_VERSION="$BACKUP_PATH/$DEPLOY_VERSION"
+    LOCAL_VERSION="$LOCAL_ROOT/$DEPLOY_VERSION"
+
+    # Copy the deploy version record back
+    if [ -f "$BACKUP_DEPLOY_VERSION" ]; then
+        cp "$BACKUP_DEPLOY_VERSION" "$LOCAL_VERSION"
+        scp -P "$SSH_PORT" "$BACKUP_DEPLOY_VERSION" "$SSH_USER@$SSH_HOST:$PROD_ROOT/$DEPLOY_VERSION" &>/dev/null
+
+        echo "   Deployment version updated: $DEPLOY_VERSION"
+    else
+        echo "   Deployment version file not found."
+    fi
+}

@@ -3,6 +3,7 @@ set -e
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(dirname "$DEPLOY_DIR")"
+source "$SCRIPT_DIR/functions.sh"
 source "$SCRIPT_DIR/../config/deploy.conf"
 
 MAIN_DIR="$1"
@@ -36,12 +37,29 @@ if [ -z "$TARGET_BACKUP" ]; then
     exit 1
 fi
 
-BACKUP_PATH="$BACKUP_ROOT/$TARGET_BACKUP"
+# Find all backups newer than the target and rollback sequentially
+shopt -s nullglob
+ALL_BACKUPS=("$BACKUP_ROOT"/*)
 
-if [ ! -d "$BACKUP_PATH" ]; then
-    echo "❌ Backup '$TARGET_BACKUP' not found in $BACKUP_ROOT"
+# Sort backup directories
+SORTED_BACKUPS=($(for dir in "${ALL_BACKUPS[@]}"; do basename "$dir"; done | sort))
+
+# Find the target index
+TARGET_INDEX=-1
+for i in "${!SORTED_BACKUPS[@]}"; do
+    if [[ "${SORTED_BACKUPS[$i]}" == "$TARGET_BACKUP" ]]; then
+        TARGET_INDEX=$i
+        break
+    fi
+done
+
+if [ "$TARGET_INDEX" -lt 0 ]; then
+    echo "❌ Backup $TARGET_BACKUP not found in $BACKUP_ROOT"
     exit 1
 fi
+
+# Newer backups sorted newest → oldest
+ROLLBACK_BACKUPS=($(for b in "${SORTED_BACKUPS[@]:$TARGET_INDEX}"; do echo "$b"; done | sort -r))
 
 echo ""
 echo "🔍 Checking deployment environment..."
@@ -75,90 +93,39 @@ if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_USER@$SSH_HOST" "exit" 2>/de
     read -p "Press Enter to continue deployment..."
 fi
 
-echo "------------------------------------"
 echo "✅ Environment check completed!"
-echo ""
 
 echo ""
-echo "🔄 Rolling back to backup: $TARGET_BACKUP"
+echo "🔁 Rolling back to backup"
 echo "------------------------------------"
 
-# === Confirm rollback ===
-echo "⚠️  You are about to restore files from:"
-echo "   $BACKUP_PATH"
-echo "   to remote environment:"
+# Confirm rollback
+echo "⚠️  You are about to restore the following backups (newest → oldest):"
+for BACKUP in "${ROLLBACK_BACKUPS[@]}"; do
+    echo "   - $BACKUP"
+done
+echo "   to remote environment:" 
 echo "   $SSH_USER@$SSH_HOST:$PROD_ROOT"
+
 read -p "Are you sure you want to continue? (y/N): " CONFIRM
 if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
     echo "🚫 Rollback cancelled."
     exit 0
 fi
 
-# === Check that backup is not empty ===
-if [ -z "$(ls -A "$BACKUP_PATH")" ]; then
-    echo "⚠️  Backup directory is empty: $BACKUP_PATH"
-    exit 1
-fi
-
-# === Restore old files from backup ===
-OLD_DIR="$BACKUP_PATH/old"
-NEW_DIR="$BACKUP_PATH/new"
-
 echo ""
-echo "📂 Restoring old files from: $OLD_DIR"
+echo "Starting rollback sequence..."
 
-# === Rollback 'old' files (restore previous versions) ===
-if [ -d "$OLD_DIR" ]; then
-    mapfile -t old_files < <(find "$OLD_DIR" -type f)
-    for FILE in "${old_files[@]}"; do
-        REL_PATH="${FILE#$OLD_DIR/}"
-        PROD_FILE="$PROD_ROOT/$REL_PATH"
-        PROD_DIR="$(dirname "$PROD_FILE")"
+# Sequential rollback
+for BACKUP in "${ROLLBACK_BACKUPS[@]}"; do
+    echo ""
+    echo "🔁 Rolling back: $BACKUP"
 
-        echo "⬅️ Restoring: $REL_PATH"
-        ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p \"$PROD_DIR\""
-        scp -P "$SSH_PORT" "$FILE" "$SSH_USER@$SSH_HOST:$PROD_FILE"
-    done
-    echo "✅ Old files restored successfully."
-else
-    echo "ℹ️ No old files to restore."
-fi
+    rollback_single_backup "$BACKUP"
 
-echo ""
-echo "🗑️  Removing newly added files from: $NEW_DIR"
-
-# === Rollback 'new' files (delete files that were newly added during apply) ===
-if [ -d "$NEW_DIR" ]; then
-    # Read all files into an array
-    mapfile -d '' NEW_FILES < <(find "$NEW_DIR" -type f -print0)
-
-    for FILE in "${NEW_FILES[@]}"; do
-        REL_PATH="${FILE#$NEW_DIR/}"
-        PROD_FILE="$PROD_ROOT/$REL_PATH"
-
-        echo "➖ Deleting: $REL_PATH"
-        ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "rm -f \"$PROD_FILE\""
-    done
-
-    echo "✅ New files removed successfully."
-else
-    echo "ℹ️ No new files to delete."
-fi
-
-# Set path to backup version record
-BACKUP_DEPLOY_VERSION="$BACKUP_PATH/$DEPLOY_VERSION"
-LOCAL_VERSION="$LOCAL_ROOT/$DEPLOY_VERSION"
-
-# Copy the deploy version record back
-if [ -f "$BACKUP_DEPLOY_VERSION" ]; then
-    cp "$BACKUP_DEPLOY_VERSION" "$LOCAL_VERSION"
-    scp -P "$SSH_PORT" "$BACKUP_DEPLOY_VERSION" "$SSH_USER@$SSH_HOST:$PROD_ROOT/$DEPLOY_VERSION"
-else
-    echo "⚠️ Backup deployment version record not found: $BACKUP_DEPLOY_VERSION"
-fi
-
-echo "✅ Deployment version record restored to production: $DEPLOY_VERSION"
+    echo "✅ Rollback of $BACKUP completed."
+done
 
 echo "------------------------------------"
-echo "🎉 Rollback completed successfully!"
+echo "🎉 All selected backups have been rolled back successfully!"
 echo ""
