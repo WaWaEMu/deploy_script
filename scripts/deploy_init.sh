@@ -5,10 +5,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/functions.sh"
 source "$SCRIPT_DIR/../config/deploy.conf"
 
+echo ""
+echo "🌐 Repository Connection Mode"
+echo "------------------------------------------"
+
 REPO_URL=$(get_repo_url)
+
+echo "------------------------------------------"
+
+
+echo ""
+echo "📦 Repository Setup"
+echo "------------------------------------------"
+
 prepare_repo "$REPO_URL" "$DEPLOY_BRANCH"
 
-echo "=== Initialize deployment tracking ==="
+echo "------------------------------------------"
+
+echo ""
+echo "🚀 Initialize deployment tracking"
+echo "------------------------------------------"
 
 # Clean up old version_diff directory if exists
 VERSION_DIFF_DIR="$MAIN_DIR/version_diff"
@@ -19,10 +35,11 @@ fi
 
 if [ ! -f "$DEPLOY_VERSION" ] || [ ! -s "$DEPLOY_VERSION" ] ; then
     echo "⚠️  Deployment record file not found or empty."
-    read -p "Please enter the current production commit hash to initialize tracking: " INPUT_HASH
+    echo "Please enter the current production commit hash to initialize tracking:"
+    read -p "> " INPUT_HASH
 
     if [ -z "$INPUT_HASH" ]; then
-        echo "Error: commit hash cannot be empty."
+        echo "❌ Error: commit hash cannot be empty."
         exit 1
     fi
 
@@ -35,10 +52,12 @@ if [ ! -f "$DEPLOY_VERSION" ] || [ ! -s "$DEPLOY_VERSION" ] ; then
 
     COMMIT_HASH=$FULL_HASH
     echo "$COMMIT_HASH" > "$DEPLOY_VERSION"
-    echo "Deployment tracking initialized with commit: $COMMIT_HASH"
+    echo "→ Deployment tracking initialized with commit:"
+    echo "  $COMMIT_HASH"
 else
     COMMIT_HASH=$(cat "$DEPLOY_VERSION")
-    echo "Found existing deployment record: $COMMIT_HASH"
+    echo "→ Found existing deployment record:"
+    echo "  $COMMIT_HASH"
 fi
 
 # Confirm commit exists
@@ -47,5 +66,10 @@ if ! git cat-file -e "${COMMIT_HASH}^{commit}" 2>/dev/null; then
     exit 1
 fi
 
+echo ""
 echo "✅ Deployment tracking successfully initialized."
-echo "Next step: run './deploy.sh prepare' to generate deployment diffs."
+echo "------------------------------------------"
+echo ""
+echo "👉 Next step:"
+echo "   Run './deploy.sh prepare'"
+echo "   to generate deployment diffs."
